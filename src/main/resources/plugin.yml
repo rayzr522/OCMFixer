@@ -1,0 +1,8 @@
+name: OCMFixer
+main: com.rayzr522.ocmfixer.OCMFixerPlugin
+version: 1.0.0
+description: Reads playerdata files and fixes the attack speed
+commands:
+  read:
+    description: Reads a world folder
+    usage: "\u00a7cUsage: /read <world>"
