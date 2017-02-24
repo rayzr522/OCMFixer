@@ -23,6 +23,8 @@
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
+// Just some notes, I had to modify a few parts of this to make it... functional
+
 package com.comphenix.attribute;
 
 import java.io.BufferedInputStream;
@@ -59,16 +61,15 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.google.common.io.ByteSink;
 import com.google.common.io.Closeables;
 import com.google.common.io.Files;
-import com.google.common.io.OutputSupplier;
 import com.google.common.primitives.Primitives;
 
-@SuppressWarnings("deprecation")
 public class NbtFactory {
     // Convert between NBT id and the equivalent class in java
     private static final BiMap<Integer, Class<?>> NBT_CLASS = HashBiMap.create();
-    private static final BiMap<Integer, NbtType>  NBT_ENUM  = HashBiMap.create();
+    private static final BiMap<Integer, NbtType> NBT_ENUM = HashBiMap.create();
 
     /**
      * Whether or not to enable stream compression.
@@ -114,26 +115,26 @@ public class NbtFactory {
     }
 
     // The NBT base class
-    private Class<?>           BASE_CLASS;
-    private Class<?>           COMPOUND_CLASS;
-    private Class<?>           STREAM_TOOLS;
-    private Class<?>           READ_LIMITER_CLASS;
-    private Method             NBT_CREATE_TAG;
-    private Method             NBT_GET_TYPE;
-    private Field              NBT_LIST_TYPE;
-    private final Field[]      DATA_FIELD = new Field[12];
+    private Class<?> BASE_CLASS;
+    private Class<?> COMPOUND_CLASS;
+    private Class<?> STREAM_TOOLS;
+    private Class<?> READ_LIMITER_CLASS;
+    private Method NBT_CREATE_TAG;
+    private Method NBT_GET_TYPE;
+    private Field NBT_LIST_TYPE;
+    private final Field[] DATA_FIELD = new Field[12];
 
     // CraftItemStack
-    private Class<?>           CRAFT_STACK;
-    private Field              CRAFT_HANDLE;
-    private Field              STACK_TAG;
+    private Class<?> CRAFT_STACK;
+    private Field CRAFT_HANDLE;
+    private Field STACK_TAG;
 
     // Loading/saving compounds
     private LoadCompoundMethod LOAD_COMPOUND;
-    private Method             SAVE_COMPOUND;
+    private Method SAVE_COMPOUND;
 
     // Shared instance
-    private static NbtFactory  INSTANCE;
+    private static NbtFactory INSTANCE;
 
     /**
      * Represents a root NBT compound.
@@ -275,7 +276,7 @@ public class NbtFactory {
          * @param option - whether or not to compress the output.
          * @throws IOException If anything went wrong.
          */
-        public void saveTo(OutputSupplier<? extends OutputStream> stream, StreamOptions option) throws IOException {
+        public void saveTo(ByteSink stream, StreamOptions option) throws IOException {
             saveStream(this, stream, option);
         }
 
@@ -484,7 +485,6 @@ public class NbtFactory {
      * @return The decoded NBT compound.
      * @throws IOException If anything went wrong.
      */
-    @SuppressWarnings("resource")
     public static NbtCompound fromStream(InputStream stream, StreamOptions option) throws IOException {
         InputStream input = null;
         DataInputStream data = null;
@@ -518,13 +518,13 @@ public class NbtFactory {
      * @param option - whether or not to compress the output.
      * @throws IOException If anything went wrong.
      */
-    public static void saveStream(NbtCompound source, OutputSupplier<? extends OutputStream> stream, StreamOptions option) throws IOException {
+    public static void saveStream(NbtCompound source, ByteSink stream, StreamOptions option) throws IOException {
         OutputStream output = null;
         DataOutputStream data = null;
         boolean suppress = true;
 
         try {
-            output = stream.getOutput();
+            output = stream.openStream();
             data = new DataOutputStream(
                     option == StreamOptions.GZIP_COMPRESSION ? new GZIPOutputStream(output) : output);
 
@@ -864,7 +864,7 @@ public class NbtFactory {
      * @author Kristian
      */
     private class ConvertedMap extends AbstractMap<String, Object> implements Wrapper {
-        private final Object              handle;
+        private final Object handle;
         private final Map<String, Object> original;
 
         private final CachedNativeWrapper cache = new CachedNativeWrapper();
@@ -968,9 +968,9 @@ public class NbtFactory {
      * @author Kristian
      */
     private class ConvertedList extends AbstractList<Object> implements Wrapper {
-        private final Object              handle;
+        private final Object handle;
 
-        private final List<Object>        original;
+        private final List<Object> original;
         private final CachedNativeWrapper cache = new CachedNativeWrapper();
 
         public ConvertedList(Object handle, List<Object> original) {
