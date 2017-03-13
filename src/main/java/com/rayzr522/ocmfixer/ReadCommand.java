@@ -56,34 +56,14 @@ public class ReadCommand implements CommandExecutor {
                 log("Found attributes list");
 
                 // Reset attack speed
-                findByName(list, "generic.attackSpeed").ifPresent(attribute -> {
-                    if (attribute.getDouble("Base", 0.0) == 4.0) {
-                        return;
-                    }
-
-                    log("Resetting attack speed to default (4.0)");
-
-                    list.remove(attribute);
-                    attribute.putPath("Base", 4.0);
-                    list.add(attribute);
-
-                    state.markDirty();
-                });
-
-                // Reset attack damage
-                findByName(list, "generic.attackDamage").ifPresent(attribute -> {
-                    if (attribute.getDouble("Base", 0.0) == 2.0) {
-                        return;
-                    }
-
-                    log("Resetting attack damage to default (2.0)");
-
-                    list.remove(attribute);
-                    attribute.putPath("Base", 2.0);
-                    list.add(attribute);
-
-                    state.markDirty();
-                });
+                resetAttribute(state, list, "generic.attackSpeed", 4.0);
+                resetAttribute(state, list, "generic.attackDamage", 1.0);
+                resetAttribute(state, list, "generic.movementSpeed", 0.100000001490116);
+                resetAttribute(state, list, "generic.maxHealth", 20.0);
+                resetAttribute(state, list, "generic.armor", 0.0);
+                resetAttribute(state, list, "generic.armorToughness", 0.0);
+                resetAttribute(state, list, "generic.knockbackResistance", 0.0);
+                resetAttribute(state, list, "generic.luck", 0.0);
 
                 if (state.isDirty()) {
                     nbt.putPath("Attributes", list);
@@ -108,6 +88,33 @@ public class ReadCommand implements CommandExecutor {
         return true;
     }
 
+    private void resetAttribute(ScrewYouLambdas state, NbtList list, String attributeName, double defaultValue) {
+        findByName(list, attributeName).ifPresent(attribute -> {
+            if (getNumber(attribute, "Base") == defaultValue) {
+                return;
+            }
+
+            log("Resetting %s to default (%d)", attributeName, defaultValue);
+
+            list.remove(attribute);
+            attribute.putPath("Base", defaultValue);
+            list.add(attribute);
+
+            state.markDirty();
+        });
+    }
+
+    private double getNumber(NbtCompound tag, String name) {
+        Object value = tag.getOrDefault(name, 0.0);
+        if (value instanceof Double) {
+            return (Double) value;
+        } else if (value instanceof Integer) {
+            return (Integer) value;
+        } else {
+            return 0.0;
+        }
+    }
+
     private Optional<NbtCompound> findByName(NbtList list, String name) {
         return list.stream()
                 .filter(it -> it instanceof NbtCompound)
@@ -120,8 +127,8 @@ public class ReadCommand implements CommandExecutor {
         sender.sendMessage(ChatColor.translateAlternateColorCodes('&', String.format("&8\u00bb %s", message)));
     }
 
-    private void log(String msg) {
-        plugin.getLogger().info(msg);
+    private void log(String msg, Object... args) {
+        plugin.getLogger().info(String.format(msg, args));
     }
 
     private class ScrewYouLambdas {
