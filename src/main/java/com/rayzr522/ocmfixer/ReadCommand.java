@@ -94,7 +94,7 @@ public class ReadCommand implements CommandExecutor {
                 return;
             }
 
-            log("Resetting %s to default (%d)", attributeName, defaultValue);
+            log("Resetting %s to default value (%f)", attributeName, defaultValue);
 
             list.remove(attribute);
             attribute.putPath("Base", defaultValue);
