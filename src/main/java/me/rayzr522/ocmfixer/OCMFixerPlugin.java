@@ -1,9 +1,9 @@
+package me.rayzr522.ocmfixer;
 
-package com.rayzr522.ocmfixer;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
-
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class OCMFixerPlugin extends JavaPlugin {
 
@@ -12,12 +12,8 @@ public class OCMFixerPlugin extends JavaPlugin {
         getCommand("read").setExecutor(new ReadCommand(this));
     }
 
-    /**
-     * @param name the name of the world folder
-     * @return
-     */
     public File getWorldFolder(String name) {
-        return new File(getDataFolder().getParentFile().getParentFile(), name);
+        return new File(Bukkit.getWorldContainer(), name);
     }
 
 }

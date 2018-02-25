@@ -1,6 +1,6 @@
 name: OCMFixer
-main: com.rayzr522.ocmfixer.OCMFixerPlugin
-version: 1.2.1
+main: me.rayzr522.ocmfixer.OCMFixerPlugin
+version: ${project.version}
 description: Reads playerdata files and fixes the attack speed
 commands:
   read:

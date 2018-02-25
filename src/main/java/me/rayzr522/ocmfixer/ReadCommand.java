@@ -1,25 +1,22 @@
+package me.rayzr522.ocmfixer;
 
-package com.rayzr522.ocmfixer;
-
-import java.io.File;
-import java.util.Optional;
-
+import com.google.common.io.Files;
+import me.rayzr522.lib.comphenix.attribute.NbtFactory;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
-import com.comphenix.attribute.NbtFactory;
-import com.comphenix.attribute.NbtFactory.NbtCompound;
-import com.comphenix.attribute.NbtFactory.NbtList;
-import com.comphenix.attribute.NbtFactory.StreamOptions;
-import com.google.common.io.Files;
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.Objects;
+import java.util.Optional;
 
 public class ReadCommand implements CommandExecutor {
 
     private OCMFixerPlugin plugin;
 
-    public ReadCommand(OCMFixerPlugin plugin) {
+    ReadCommand(OCMFixerPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -40,19 +37,21 @@ public class ReadCommand implements CommandExecutor {
         ScrewYouLambdas state = new ScrewYouLambdas();
 
         log("Beginning conversion process on world " + args[0]);
-        for (File file : folder.listFiles()) {
+        for (File file : Objects.requireNonNull(folder.listFiles())) {
 
             state.reset();
 
             log("Attempting conversion of file '" + file.getName() + "'");
 
             try {
-                NbtCompound nbt = NbtReader.read(file);
+                NbtFactory.NbtCompound nbt = read(file);
+                assert nbt != null;
 
-                NbtList list = nbt.getList("Attributes", false);
+                NbtFactory.NbtList list = nbt.getList("Attributes", false);
                 if (list == null) {
                     continue;
                 }
+
                 log("Found attributes list");
 
                 // Reset attack speed
@@ -69,7 +68,7 @@ public class ReadCommand implements CommandExecutor {
                     nbt.putPath("Attributes", list);
                     log("Saving modified data...");
 
-                    NbtFactory.saveStream(nbt, Files.asByteSink(file), StreamOptions.GZIP_COMPRESSION);
+                    NbtFactory.saveStream(nbt, Files.asByteSink(file), NbtFactory.StreamOptions.GZIP_COMPRESSION);
 
                     log("Done. Data reset for '" + file.getName() + "'");
                 } else {
@@ -80,7 +79,6 @@ public class ReadCommand implements CommandExecutor {
                 e.printStackTrace();
                 tell(p, "&cFailed to load file: &a" + file.getName());
             }
-
         }
 
         tell(p, "&aPlayer data files have been fixed for '" + args[0] + "'");
@@ -88,9 +86,9 @@ public class ReadCommand implements CommandExecutor {
         return true;
     }
 
-    private void resetAttribute(ScrewYouLambdas state, NbtList list, String attributeName, double defaultValue) {
+    private void resetAttribute(ScrewYouLambdas state, NbtFactory.NbtList list, String attributeName, double defaultValue) {
         findByName(list, attributeName).ifPresent(attribute -> {
-            if (getNumber(attribute, "Base") == defaultValue) {
+            if (getNumber(attribute) == defaultValue) {
                 return;
             }
 
@@ -104,8 +102,8 @@ public class ReadCommand implements CommandExecutor {
         });
     }
 
-    private double getNumber(NbtCompound tag, String name) {
-        Object value = tag.getOrDefault(name, 0.0);
+    private double getNumber(NbtFactory.NbtCompound tag) {
+        Object value = tag.getOrDefault("Base", 0.0);
         if (value instanceof Double) {
             return (Double) value;
         } else if (value instanceof Integer) {
@@ -115,10 +113,10 @@ public class ReadCommand implements CommandExecutor {
         }
     }
 
-    private Optional<NbtCompound> findByName(NbtList list, String name) {
+    private Optional<NbtFactory.NbtCompound> findByName(NbtFactory.NbtList list, String name) {
         return list.stream()
-                .filter(it -> it instanceof NbtCompound)
-                .map(it -> (NbtCompound) it)
+                .filter(it -> it instanceof NbtFactory.NbtCompound)
+                .map(it -> (NbtFactory.NbtCompound) it)
                 .filter(it -> it.getString("Name", "ERR").equals(name))
                 .findFirst();
     }
@@ -131,18 +129,28 @@ public class ReadCommand implements CommandExecutor {
         plugin.getLogger().info(String.format(msg, args));
     }
 
+    private NbtFactory.NbtCompound read(File file) {
+        try {
+            return NbtFactory.fromStream(new FileInputStream(file), NbtFactory.StreamOptions.GZIP_COMPRESSION);
+        } catch (Exception e) {
+            System.err.println("Failed to read NBT file: " + file.getPath());
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     private class ScrewYouLambdas {
         private boolean dirty = false;
 
-        public void markDirty() {
+        void markDirty() {
             dirty = true;
         }
 
-        public boolean isDirty() {
+        boolean isDirty() {
             return dirty;
         }
 
-        public void reset() {
+        void reset() {
             dirty = false;
         }
     }
