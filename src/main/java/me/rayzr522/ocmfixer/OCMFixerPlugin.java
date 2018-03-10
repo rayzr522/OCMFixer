@@ -10,6 +10,7 @@ public class OCMFixerPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         getCommand("read").setExecutor(new ReadCommand(this));
+        getServer().getPluginManager().registerEvents(new ArmorFixListener(), this);
     }
 
     public File getWorldFolder(String name) {
