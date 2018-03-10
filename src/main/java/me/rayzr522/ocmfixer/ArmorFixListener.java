@@ -24,6 +24,7 @@ public class ArmorFixListener implements Listener {
             return;
         }
 
+
         ItemStack[] items = inv.getContents();
         inv.setContents(cleanItems(items));
     }
@@ -50,6 +51,10 @@ public class ArmorFixListener implements Listener {
         NbtFactory.NbtCompound root = NbtFactory.fromItemTag(item);
         NbtFactory.NbtList attributes = root.getList("AttributeModifiers", false);
 
+        if (attributes == null) {
+            return item;
+        }
+
         // Dirty check to prevent extra work...
         int origSize = attributes.size();
 
@@ -64,7 +69,11 @@ public class ArmorFixListener implements Listener {
 
         // ... so we know if they removed any elements.
         if (attributes.size() != origSize) {
-            root.put("AttributeModifiers", attributes);
+            if (attributes.size() == 0) {
+                root.remove("AttributeModifiers");
+            } else {
+                root.put("AttributeModifiers", attributes);
+            }
             NbtFactory.setItemTag(item, root);
         }
 
