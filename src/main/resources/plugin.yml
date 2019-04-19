@@ -1,8 +1,9 @@
 name: OCMFixer
 main: me.rayzr522.ocmfixer.OCMFixerPlugin
 version: ${project.version}
-description: Reads playerdata files and fixes the attack speed
+description: Reads playerdata files and fixes various attributes
 commands:
-  read:
-    description: Reads a world folder
+  fixworld:
+    description: Reads a world folder and repairs its attributes
+    aliases: [read]
     usage: "\u00a7cUsage: /read <world>"

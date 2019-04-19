@@ -12,11 +12,11 @@ import java.io.FileInputStream;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ReadCommand implements CommandExecutor {
+public class FixWorldCommand implements CommandExecutor {
 
     private OCMFixerPlugin plugin;
 
-    ReadCommand(OCMFixerPlugin plugin) {
+    FixWorldCommand(OCMFixerPlugin plugin) {
         this.plugin = plugin;
     }
 

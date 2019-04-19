@@ -9,7 +9,7 @@ public class OCMFixerPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        getCommand("read").setExecutor(new ReadCommand(this));
+        getCommand("fixworld").setExecutor(new FixWorldCommand(this));
         getServer().getPluginManager().registerEvents(new ArmorFixListener(), this);
     }
 
