@@ -78,38 +78,47 @@ public class NbtFactory {
      * NBTBase.
      */
     private NbtFactory() {
-        if (BASE_CLASS == null) {
-            try {
-                // Keep in mind that I do use hard-coded field names - but it's
-                // okay as long as we're dealing
-                // with CraftBukkit or its derivatives. This does not work in
-                // MCPC+ however.
-                ClassLoader loader = NbtFactory.class.getClassLoader();
+        try {
+            // Keep in mind that I do use hard-coded field names - but it's
+            // okay as long as we're dealing
+            // with CraftBukkit or its derivatives. This does not work in
+            // MCPC+ however.
+            ClassLoader loader = NbtFactory.class.getClassLoader();
 
-                String packageName = getPackageName();
-                Class<?> offlinePlayer = loader.loadClass(packageName + ".CraftOfflinePlayer");
+            String packageName = getPackageName();
+            Class<?> offlinePlayer = loader.loadClass(packageName + ".CraftOfflinePlayer");
 
-                // Prepare NBT
-                COMPOUND_CLASS = getMethod(0, Modifier.STATIC, offlinePlayer, "getData").getReturnType();
+            String[] version = packageName.substring(packageName.lastIndexOf('.')).replaceAll("[a-zA-Z]", "").split("_");
+
+            int majorVersion = Integer.parseInt(version[1]);
+//            int minorVersion = Integer.parseInt(version[2]);
+
+            // Prepare NBT
+            COMPOUND_CLASS = getMethod(0, Modifier.STATIC, offlinePlayer, "getData").getReturnType();
+            if (majorVersion >= 13) {
+                // 1.13 compat
+                BASE_CLASS = COMPOUND_CLASS.getInterfaces()[0];
+            } else {
                 BASE_CLASS = COMPOUND_CLASS.getSuperclass();
-                NBT_GET_TYPE = getMethod(0, Modifier.STATIC, BASE_CLASS, "getTypeId");
-                NBT_CREATE_TAG = getMethod(Modifier.STATIC, 0, BASE_CLASS, "createTag", byte.class);
-
-                // Prepare CraftItemStack
-                CRAFT_STACK = loader.loadClass(packageName + ".inventory.CraftItemStack");
-                CRAFT_HANDLE = getField(null, CRAFT_STACK, "handle");
-                STACK_TAG = getField(null, CRAFT_HANDLE.getType(), "tag");
-
-                // Loading/saving
-                String nmsPackage = BASE_CLASS.getPackage().getName();
-                initializeNMS(loader, nmsPackage);
-
-                LOAD_COMPOUND = READ_LIMITER_CLASS != null ? new LoadMethodSkinUpdate(STREAM_TOOLS, READ_LIMITER_CLASS) : new LoadMethodWorldUpdate(STREAM_TOOLS);
-                SAVE_COMPOUND = getMethod(Modifier.STATIC, 0, STREAM_TOOLS, null, BASE_CLASS, DataOutput.class);
-
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException("Unable to find offline player.", e);
             }
+
+            NBT_GET_TYPE = getMethod(0, Modifier.STATIC, BASE_CLASS, "getTypeId");
+            NBT_CREATE_TAG = getMethod(Modifier.STATIC, 0, BASE_CLASS, "createTag", byte.class);
+
+            // Prepare CraftItemStack
+            CRAFT_STACK = loader.loadClass(packageName + ".inventory.CraftItemStack");
+            CRAFT_HANDLE = getField(null, CRAFT_STACK, "handle");
+            STACK_TAG = getField(null, CRAFT_HANDLE.getType(), "tag");
+
+            // Loading/saving
+            String nmsPackage = BASE_CLASS.getPackage().getName();
+            initializeNMS(loader, nmsPackage);
+
+            LOAD_COMPOUND = READ_LIMITER_CLASS != null ? new LoadMethodSkinUpdate(STREAM_TOOLS, READ_LIMITER_CLASS) : new LoadMethodWorldUpdate(STREAM_TOOLS);
+            SAVE_COMPOUND = getMethod(Modifier.STATIC, 0, STREAM_TOOLS, null, BASE_CLASS, DataOutput.class);
+
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("Unable to find offline player.", e);
         }
     }
 

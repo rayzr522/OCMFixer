@@ -88,6 +88,13 @@ public class FixWorldCommand implements CommandExecutor {
 
     private void resetAttribute(ScrewYouLambdas state, NbtFactory.NbtList list, String attributeName, double defaultValue) {
         findByName(list, attributeName).ifPresent(attribute -> {
+            if (attribute.containsKey("Modifiers")) {
+                log("Removing modifiers for %s", attributeName);
+                attribute.remove("Modifiers");
+                
+                state.markDirty();
+            }
+
             if (getNumber(attribute) == defaultValue) {
                 return;
             }
