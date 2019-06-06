@@ -95,12 +95,8 @@ public class NbtFactory {
 
             // Prepare NBT
             COMPOUND_CLASS = getMethod(0, Modifier.STATIC, offlinePlayer, "getData").getReturnType();
-            if (majorVersion >= 13) {
-                // 1.13 compat
-                BASE_CLASS = COMPOUND_CLASS.getInterfaces()[0];
-            } else {
-                BASE_CLASS = COMPOUND_CLASS.getSuperclass();
-            }
+            String nmsPackage = COMPOUND_CLASS.getPackage().getName();
+            BASE_CLASS = loader.loadClass(nmsPackage + ".NBTBase");
 
             NBT_GET_TYPE = getMethod(0, Modifier.STATIC, BASE_CLASS, "getTypeId");
             NBT_CREATE_TAG = getMethod(Modifier.STATIC, 0, BASE_CLASS, "createTag", byte.class);
@@ -111,7 +107,6 @@ public class NbtFactory {
             STACK_TAG = getField(null, CRAFT_HANDLE.getType(), "tag");
 
             // Loading/saving
-            String nmsPackage = BASE_CLASS.getPackage().getName();
             initializeNMS(loader, nmsPackage);
 
             LOAD_COMPOUND = READ_LIMITER_CLASS != null ? new LoadMethodSkinUpdate(STREAM_TOOLS, READ_LIMITER_CLASS) : new LoadMethodWorldUpdate(STREAM_TOOLS);
