@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>me.rayzr522</groupId>
     <artifactId>ocmfixer</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1</version>
     <name>OCMFixer</name>
     <description>Fixes the attack speed of players</description>
 

@@ -50,6 +50,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+@SuppressWarnings({"WeakerAccess", "unused"})
 public class NbtFactory {
     // Convert between NBT id and the equivalent class in java
     private static final BiMap<Integer, Class<?>> NBT_CLASS = HashBiMap.create();
@@ -142,7 +143,7 @@ public class NbtFactory {
      *
      * @return The NBT list.
      */
-    public static NbtList createList(Iterable<? extends Object> iterable) {
+    public static NbtList createList(Iterable<?> iterable) {
         NbtList list = get().new NbtList(
                 INSTANCE.createNbtTag(NbtType.TAG_LIST, null));
 
