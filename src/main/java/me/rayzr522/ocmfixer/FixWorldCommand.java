@@ -1,7 +1,11 @@
 package me.rayzr522.ocmfixer;
 
-import com.google.common.io.Files;
-import me.rayzr522.lib.comphenix.attribute.NbtFactory;
+import me.ialistannen.mininbt.NBTWrappers;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagCompound;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagDouble;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagInt;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagList;
+import me.ialistannen.mininbt.StreamNBTUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -9,6 +13,7 @@ import org.bukkit.command.CommandSender;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -44,10 +49,10 @@ public class FixWorldCommand implements CommandExecutor {
             log("Attempting conversion of file '" + file.getName() + "'");
 
             try {
-                NbtFactory.NbtCompound nbt = read(file);
+                NBTTagCompound nbt = read(file);
                 assert nbt != null;
 
-                NbtFactory.NbtList list = nbt.getList("Attributes", false);
+                NBTTagList list = (NBTTagList) nbt.get("Attributes");
                 if (list == null) {
                     continue;
                 }
@@ -65,10 +70,10 @@ public class FixWorldCommand implements CommandExecutor {
                 resetAttribute(state, list, "generic.luck", 0.0);
 
                 if (state.isDirty()) {
-                    nbt.putPath("Attributes", list);
+                    nbt.set("Attributes", list);
                     log("Saving modified data...");
 
-                    NbtFactory.saveStream(nbt, Files.asByteSink(file), NbtFactory.StreamOptions.GZIP_COMPRESSION);
+                    StreamNBTUtil.writeToStream(nbt, new FileOutputStream(file));
 
                     log("Done. Data reset for '" + file.getName() + "'");
                 } else {
@@ -86,12 +91,12 @@ public class FixWorldCommand implements CommandExecutor {
         return true;
     }
 
-    private void resetAttribute(ScrewYouLambdas state, NbtFactory.NbtList list, String attributeName, double defaultValue) {
+    private void resetAttribute(ScrewYouLambdas state, NBTTagList list, String attributeName, double defaultValue) {
         findByName(list, attributeName).ifPresent(attribute -> {
-            if (attribute.containsKey("Modifiers")) {
+            if (attribute.hasKey("Modifiers")) {
                 log("Removing modifiers for %s", attributeName);
                 attribute.remove("Modifiers");
-                
+
                 state.markDirty();
             }
 
@@ -102,29 +107,29 @@ public class FixWorldCommand implements CommandExecutor {
             log("Resetting %s to default value (%f)", attributeName, defaultValue);
 
             list.remove(attribute);
-            attribute.putPath("Base", defaultValue);
+            attribute.setDouble("Base", defaultValue);
             list.add(attribute);
 
             state.markDirty();
         });
     }
 
-    private double getNumber(NbtFactory.NbtCompound tag) {
-        Object value = tag.getOrDefault("Base", 0.0);
-        if (value instanceof Double) {
-            return (Double) value;
-        } else if (value instanceof Integer) {
-            return (Integer) value;
+    private double getNumber(NBTTagCompound tag) {
+        Object value = tag.get("Base");
+        if (value instanceof NBTTagDouble) {
+            return ((NBTTagDouble) value).getAsDouble();
+        } else if (value instanceof NBTTagInt) {
+            return ((NBTTagInt) value).getAsInt();
         } else {
             return 0.0;
         }
     }
 
-    private Optional<NbtFactory.NbtCompound> findByName(NbtFactory.NbtList list, String name) {
-        return list.stream()
-                .filter(it -> it instanceof NbtFactory.NbtCompound)
-                .map(it -> (NbtFactory.NbtCompound) it)
-                .filter(it -> it.getString("Name", "ERR").equals(name))
+    private Optional<NBTTagCompound> findByName(NBTTagList list, String name) {
+        return list.getList().stream()
+                .filter(NBTTagCompound.class::isInstance)
+                .map(NBTTagCompound.class::cast)
+                .filter(it -> name.equals(it.getString("Name")))
                 .findFirst();
     }
 
@@ -136,9 +141,9 @@ public class FixWorldCommand implements CommandExecutor {
         plugin.getLogger().info(String.format(msg, args));
     }
 
-    private NbtFactory.NbtCompound read(File file) {
+    private NBTTagCompound read(File file) {
         try {
-            return NbtFactory.fromStream(new FileInputStream(file), NbtFactory.StreamOptions.GZIP_COMPRESSION);
+            return StreamNBTUtil.fromStream(new FileInputStream(file));
         } catch (Exception e) {
             System.err.println("Failed to read NBT file: " + file.getPath());
             e.printStackTrace();

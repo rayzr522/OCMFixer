@@ -1,6 +1,8 @@
 package me.rayzr522.ocmfixer;
 
-import me.rayzr522.lib.comphenix.attribute.NbtFactory;
+import me.ialistannen.mininbt.ItemNBTUtil;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagCompound;
+import me.ialistannen.mininbt.NBTWrappers.NBTTagList;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -48,8 +50,8 @@ public class ArmorFixListener implements Listener {
             return item;
         }
 
-        NbtFactory.NbtCompound root = NbtFactory.fromItemTag(item);
-        NbtFactory.NbtList attributes = root.getList("AttributeModifiers", false);
+        NBTTagCompound root = ItemNBTUtil.getTag(item);
+        NBTTagList attributes = (NBTTagList) root.get("AttributeModifiers");
 
         if (attributes == null) {
             return item;
@@ -58,10 +60,10 @@ public class ArmorFixListener implements Listener {
         // Dirty check to prevent extra work...
         int origSize = attributes.size();
 
-        attributes.removeIf(tag -> {
-            if (tag instanceof NbtFactory.NbtCompound) {
-                NbtFactory.NbtCompound compound = (NbtFactory.NbtCompound) tag;
-                String attributeName = compound.getString("AttributeName", null);
+        attributes.getRawList().removeIf(tag -> {
+            if (tag instanceof NBTTagCompound) {
+                NBTTagCompound compound = (NBTTagCompound) tag;
+                String attributeName = compound.getString("AttributeName");
                 return "generic.armor".equals(attributeName) || "generic.armorToughness".equals(attributeName);
             }
             return false;
@@ -72,9 +74,9 @@ public class ArmorFixListener implements Listener {
             if (attributes.size() == 0) {
                 root.remove("AttributeModifiers");
             } else {
-                root.put("AttributeModifiers", attributes);
+                root.set("AttributeModifiers", attributes);
             }
-            NbtFactory.setItemTag(item, root);
+            return ItemNBTUtil.setNBTTag(root, item);
         }
 
         return item;
