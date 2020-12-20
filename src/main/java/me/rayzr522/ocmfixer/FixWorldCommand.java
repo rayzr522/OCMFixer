@@ -1,19 +1,18 @@
 package me.rayzr522.ocmfixer;
 
 import me.ialistannen.mininbt.NBTWrappers;
-import me.ialistannen.mininbt.NBTWrappers.NBTTagCompound;
-import me.ialistannen.mininbt.NBTWrappers.NBTTagDouble;
-import me.ialistannen.mininbt.NBTWrappers.NBTTagInt;
-import me.ialistannen.mininbt.NBTWrappers.NBTTagList;
+import me.ialistannen.mininbt.NBTWrappers.*;
 import me.ialistannen.mininbt.StreamNBTUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -60,14 +59,15 @@ public class FixWorldCommand implements CommandExecutor {
                 log("Found attributes list");
 
                 // Reset attack speed
-                resetAttribute(state, list, "generic.attackSpeed", 4.0);
-                resetAttribute(state, list, "generic.attackDamage", 1.0);
-                resetAttribute(state, list, "generic.movementSpeed", 0.100000001490116);
-                resetAttribute(state, list, "generic.maxHealth", 20.0);
-                resetAttribute(state, list, "generic.armor", 0.0);
-                resetAttribute(state, list, "generic.armorToughness", 0.0);
-                resetAttribute(state, list, "generic.knockbackResistance", 0.0);
-                resetAttribute(state, list, "generic.luck", 0.0);
+                Arrays.stream(PlayerAttribute.values())
+                        .forEach(attribute -> resetAttribute(state, list, attribute));
+
+                // Ensure health does not exceed max health
+                if (getNumber(nbt, "Health") > 20.0) {
+                    log("Fixed health");
+                    nbt.setDouble("Health", 20.0);
+                    state.markDirty();
+                }
 
                 if (state.isDirty()) {
                     nbt.set("Attributes", list);
@@ -91,8 +91,9 @@ public class FixWorldCommand implements CommandExecutor {
         return true;
     }
 
-    private void resetAttribute(ScrewYouLambdas state, NBTTagList list, String attributeName, double defaultValue) {
-        findByName(list, attributeName).ifPresent(attribute -> {
+    private void resetAttribute(ScrewYouLambdas state, NBTTagList list, PlayerAttribute playerAttribute) {
+        findAttribute(list, playerAttribute).ifPresent(attribute -> {
+            String attributeName = attribute.getString("Name");
             if (attribute.hasKey("Modifiers")) {
                 log("Removing modifiers for %s", attributeName);
                 attribute.remove("Modifiers");
@@ -100,24 +101,26 @@ public class FixWorldCommand implements CommandExecutor {
                 state.markDirty();
             }
 
-            if (getNumber(attribute) == defaultValue) {
+            if (getNumber(attribute, "Base") == playerAttribute.getDefaultValue()) {
                 return;
             }
 
-            log("Resetting %s to default value (%f)", attributeName, defaultValue);
+            log("Resetting %s to default value (%f)", attributeName, playerAttribute.getDefaultValue());
 
             list.remove(attribute);
-            attribute.setDouble("Base", defaultValue);
+            attribute.setDouble("Base", playerAttribute.getDefaultValue());
             list.add(attribute);
 
             state.markDirty();
         });
     }
 
-    private double getNumber(NBTTagCompound tag) {
-        Object value = tag.get("Base");
+    private double getNumber(NBTTagCompound tag, String key) {
+        Object value = tag.get(key);
         if (value instanceof NBTTagDouble) {
             return ((NBTTagDouble) value).getAsDouble();
+        } else if (value instanceof NBTTagFloat) {
+            return ((NBTTagFloat) value).getAsFloat();
         } else if (value instanceof NBTTagInt) {
             return ((NBTTagInt) value).getAsInt();
         } else {
@@ -125,11 +128,11 @@ public class FixWorldCommand implements CommandExecutor {
         }
     }
 
-    private Optional<NBTTagCompound> findByName(NBTTagList list, String name) {
+    private Optional<NBTTagCompound> findAttribute(NBTTagList list, PlayerAttribute attribute) {
         return list.getList().stream()
                 .filter(NBTTagCompound.class::isInstance)
                 .map(NBTTagCompound.class::cast)
-                .filter(it -> name.equals(it.getString("Name")))
+                .filter(it -> attribute.appliesTo(it.getString("Name")))
                 .findFirst();
     }
 
